@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>小一班大乱斗任务分线地图</title>
+        <style>
+        html, body, #container {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
+        /*.hint {
+            background: #FFF;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            top:0;
+            left:0;
+            position: fixed;
+            z-index: 999;
+            display: none;
+        }
+        @media screen and (orientation: portrait) {
+            .hint {
+                display: block! important;
+            }
+        }*/
+        </style>
+        <link rel="shortcut icon" href="favicon.ico">
+    </head>
+    
+    <body>
+        <div id="container"></div>
+        <div class="hint">横屏，请</div>
+        <script src="https://webapi.amap.com/maps?v=1.4.15&key=52afefeecae587727b7726cf41a8eb28&"></script>
+        <script src="https://webapi.amap.com/loca?v=1.3.0&key=52afefeecae587727b7726cf41a8eb28"></script>
+        <script src="https://a.amap.com/Loca/static/dist/jquery.min.js"></script>
+        <script>
+        var map = new AMap.Map('container', {
+            mapStyle: 'amap://styles/fa7cd83d57c2bebdb3cb11475cd00922',
+            center: [119.149185, 26.663153],
+            features: ['bg', 'road', 'building', 'point'],
+            zoom: 4,
+            pitch: 20,
+            viewMode: '3D'
+        });
+
+
+
+
+
+        $.get('./location.csv', function (datas) {
+
+            var layer = new Loca.LabelsLayer({
+                fitView: true,
+                map: map,
+                collision: true,
+
+            });
+
+            layer.setData(datas, {
+                type: 'csv',
+                lnglat: function (o) {
+
+                    var value = o.value;
+                    var lnglat = [value['toLng'], value['toLat']];
+                    return lnglat;
+                }
+            }).setOptions({
+                style: {
+                    direction: 'right',
+                    offset: [5, 10],
+                    zooms: [3, 20],
+                    text: function (data) {
+                        return /*String(data.value['city']) + "  "+*/ String(data.value['name'])
+                    },
+                    fillColor: '#ff9933',
+                    fontWeight: 'bold',
+                    fontSize: 20,
+                    strokeColor: '#000',
+                    strokeWidth: 0.1,
+                    opacity: 0.5,
+                },
+                selectStyle: {
+                    fontSize: 12,
+                    strokeColor: '#fff',
+                    strokeWidth: 1,
+                }
+            }).render();
+        });
+
+        var layer = new Loca.LinkLayer({
+            map: map,
+            fitView: false,
+        });
+
+        $.get('./location.csv', function (city_line) {
+            layer.setData(city_line, {
+                type: 'csv',
+                lnglat: (e) => {
+                    var {
+                        fromLng, fromLat, toLng, toLat
+                    } = e.value;
+                    return [[fromLng, fromLat], [toLng, toLat]]
+                }
+            }).setOptions({
+                style: {
+                    // 弧度
+                    curveness: {
+                        key: "distance",
+                        scale: 'linear',
+                        clamp: true,
+                        // 弧度范围
+                        value: [0, 9]
+                    },
+                    // 填充颜色
+                    color: '#5695F6',
+                    width: 9,
+                    borderWidth: 100,
+                    opacity: 0.9,
+                },
+            })
+                .render();
+        });
+        $.get('./location.csv', function (data) {
+            var layer = new Loca.PointLayer({
+                map: map
+            });
+
+            layer.setData(data, {
+                // lnglat: 'toLng'&'toLat',
+                // 或者使用回调函数构造经纬度坐标
+
+                lnglat: function (obj) {
+                    var value = obj.value;
+                    var lnglat = [value['toLng'], value['toLat']];
+                    return lnglat;
+                },
+
+                // 指定数据类型
+                type: 'csv'
+            });
+
+            layer.setOptions({
+                style: {
+                    // 圆形半径，单位像素
+                    radius: {
+                        key: 'mag', // 映射字段
+                        scale: 'linear', // 比例尺
+                        value: [7, 23], // 输出范围
+                        input: [1, 12] // 输入范围
+                    },
+                    // 填充颜色
+                    color: '#f3ad6a',
+                    // 描边颜色
+                    borderColor: '#252e64',
+                    // 描边宽度，单位像素
+                    borderWidth: 1,
+                    // 透明度 [0-1]
+                    opacity: 0.6,
+                },
+            })
+                .render();
+        });
+        </script>
+    </body>
+
+</html>
